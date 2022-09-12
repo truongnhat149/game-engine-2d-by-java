@@ -22,7 +22,7 @@ public class MouseListener {
     }
 
     public static MouseListener get() {
-        if (instance == null) {
+        if (MouseListener.instance == null) {
             MouseListener.instance = new MouseListener();
 
         }

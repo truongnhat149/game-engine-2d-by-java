@@ -5,6 +5,7 @@ import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
+import util.Time;
 
 import java.nio.IntBuffer;
 
@@ -21,9 +22,11 @@ public class Window {
     private static Window window = null;
     private String title;
 
-    private float r,g,b,a;
+    public float r,g,b,a;
 
     private boolean fadeToBlack = false;
+
+    public static Scene currentScene;
 
     private Window() {
         this.width = 1920;
@@ -41,6 +44,21 @@ public class Window {
         }
 
         return Window.window;
+    }
+
+    public static void changeScene(int newScene) {
+        switch (newScene) {
+            case 0:
+                currentScene = new LevelEditorScene();
+                // currentScene.init();
+                break;
+            case 1:
+                currentScene = new LevelScene();
+                break;
+            default:
+                assert false: "Unknown scene '"+ newScene +"'";
+                break;
+        }
     }
 
     public void run() {
@@ -86,7 +104,7 @@ public class Window {
         glfwWindow = glfwCreateWindow(this.width, this.height, this.title, NULL, NULL);
 
 
-        if (window == null) {
+        if (glfwWindow == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
 
@@ -95,40 +113,13 @@ public class Window {
         glfwSetScrollCallback(glfwWindow, MouseListener::mouseScrollCallback);
         glfwSetKeyCallback(glfwWindow, KeyListener::keyCallback);
 
-        // Set up a key callback. It will be called every time a key is pressed, repeated or released.
-        glfwSetKeyCallback(glfwWindow, (window, key, scancode, action, mods) -> {
-            if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
-                glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
-        });
-
-        // Get the thread stack and push a new frame
-        try ( MemoryStack stack = stackPush() ) {
-            IntBuffer pWidth = stack.mallocInt(1); // int*
-            IntBuffer pHeight = stack.mallocInt(1); // int*
-
-            // Get the window size passed to glfwCreateWindow
-            glfwGetWindowSize(glfwWindow, pWidth, pHeight);
-
-            // Get the resolution of the primary monitor
-            GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-
-            // Center the window
-            glfwSetWindowPos(
-                    glfwWindow,
-                    (vidmode.width() - pWidth.get(0)) / 2,
-                    (vidmode.height() - pHeight.get(0)) / 2
-            );
-        } // the stack frame is popped automatically
 
         // Make the OpenGL context current
         glfwMakeContextCurrent(glfwWindow);
         // Enable v-sync
         glfwSwapInterval(1);
-
         // Make the window visible
         glfwShowWindow(glfwWindow);
-
-
         // This line is critical for LWJGL's interoperation with GLFW's
         // OpenGL context, or any context that is managed externally.
         // LWJGL detects the context that is current in the current thread,
@@ -136,10 +127,13 @@ public class Window {
         // bindings available for use.
         GL.createCapabilities();
 
+        Window.changeScene(0);
     }
 
     public  void loop() {
-
+        float beginTime = Time.getTime();
+        float endTime;
+        float dt = -1.0f;
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
@@ -153,22 +147,29 @@ public class Window {
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
 
-            if (fadeToBlack) {
-                r = Math.max(r - 0.01f, 0);
-                g = Math.max(g - 0.01f, 0);
-                b = Math.max(b - 0.01f, 0);
-            }
+//            if (fadeToBlack) {
+//                r = Math.max(r - 0.01f, 0);
+//                g = Math.max(g - 0.01f, 0);
+//                b = Math.max(b - 0.01f, 0);
+//            }
+//
+//            if (KeyListener.isKeyPressed(GLFW_KEY_SPACE)) {
+//                fadeToBlack = true;
+//            }
 
-            if (KeyListener.isKeyPressed(GLFW_KEY_SPACE)) {
-                fadeToBlack = true;
-            }
 
+            if (dt >= 0) {
+                currentScene.update(dt);
+            }
 
             glfwSwapBuffers(glfwWindow); // swap the color buffers
 
             // Poll for window events. The key callback above will only be
             // invoked during this call.
 
+            endTime = Time.getTime();
+            dt = endTime - beginTime;
+            beginTime = endTime;
 
         }
 
