@@ -21,12 +21,18 @@ public class Window {
     private static Window window = null;
     private String title;
 
+    private float r,g,b,a;
+
+    private boolean fadeToBlack = false;
 
     private Window() {
         this.width = 1920;
         this.height = 1080;
         this.title = "Mario";
-
+        this.r = 1;
+        this.g = 1;
+        this.b = 1;
+        this.a = 1;
     }
 
     public static Window get() {
@@ -46,12 +52,12 @@ public class Window {
 
         // Free the window callbacks and destroy the window
 
-//        glfwFreeCallbacks(window);
-//        glfwDestroyWindow(window);
+        glfwFreeCallbacks(glfwWindow);
+        glfwDestroyWindow(glfwWindow);
 //
 //        // Terminate GLFW and free the error callback
-//        glfwTerminate();
-//        glfwSetErrorCallback(null).free();
+        glfwTerminate();
+        glfwSetErrorCallback(null).free();
     }
 
     public  void init() {
@@ -73,6 +79,8 @@ public class Window {
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+
+
         // Create the window
 
         glfwWindow = glfwCreateWindow(this.width, this.height, this.title, NULL, NULL);
@@ -81,6 +89,12 @@ public class Window {
         if (window == null) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
+
+        glfwSetCursorPosCallback(glfwWindow, MouseListener::mousePosCallback);
+        glfwSetMouseButtonCallback(glfwWindow, MouseListener::mouseButtonCallback);
+        glfwSetScrollCallback(glfwWindow, MouseListener::mouseScrollCallback);
+        glfwSetKeyCallback(glfwWindow, KeyListener::keyCallback);
+
         // Set up a key callback. It will be called every time a key is pressed, repeated or released.
         glfwSetKeyCallback(glfwWindow, (window, key, scancode, action, mods) -> {
             if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
@@ -113,29 +127,52 @@ public class Window {
 
         // Make the window visible
         glfwShowWindow(glfwWindow);
-    }
 
-    public  void loop() {
-// This line is critical for LWJGL's interoperation with GLFW's
+
+        // This line is critical for LWJGL's interoperation with GLFW's
         // OpenGL context, or any context that is managed externally.
         // LWJGL detects the context that is current in the current thread,
         // creates the GLCapabilities instance and makes the OpenGL
         // bindings available for use.
         GL.createCapabilities();
 
-        // Set the clear color
-        glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+    }
+
+    public  void loop() {
+
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while ( !glfwWindowShouldClose(glfwWindow) ) {
+            // pool event;
+
+            glfwPollEvents();
+
+            // Set the clear color
+            glClearColor(r,g,b,a);
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
+
+            if (fadeToBlack) {
+                r = Math.max(r - 0.01f, 0);
+                g = Math.max(g - 0.01f, 0);
+                b = Math.max(b - 0.01f, 0);
+            }
+
+            if (KeyListener.isKeyPressed(GLFW_KEY_SPACE)) {
+                fadeToBlack = true;
+            }
+
 
             glfwSwapBuffers(glfwWindow); // swap the color buffers
 
             // Poll for window events. The key callback above will only be
             // invoked during this call.
-            glfwPollEvents();
+
+
         }
+
+
+
     }
 }
